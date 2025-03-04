@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>港鐵巴士 & 九巴即時到站</title>
+    <style>
+        /* Apple 風格 UI 設計，支援手機適配，適配 iPhone SE */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", sans-serif;
+            background-color: #f5f5f7;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow-y: auto; /* 允許滾動 */
+        }
+
+        .container {
+            width: 100%;
+            max-width: 320px; /* iPhone SE 適配最大寬度 */
+            padding: 10px;
+        }
+
+        .bus-info-container {
+            width: 100%;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .bus-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .bus-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            padding: 10px;
+            background: rgba(242, 242, 247, 0.6);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .station {
+            flex: 1;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .bus-route {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            color: #007aff;
+        }
+
+        .arrival-time {
+            flex: 1;
+            text-align: right;
+            color: #34c759;
+            font-weight: 600;
+        }
+
+        .next-arrival-time {
+            flex: 1;
+            text-align: right;
+            color: #ff9500;
+            font-size: 10px; /* 字體比即將到達班次小 50% */
+            font-weight: 500;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="mtr-container" class="bus-info-container hidden">
+            <h2>藝典居站 - K68 巴士到站時間</h2>
+            <div id="bus-info" class="bus-list"></div>
+        </div>
+
+        <div id="kmb-container" class="bus-info-container hidden">
+            <h2>朗庭園站 - 九巴即時到站時間</h2>
+            <div id="kmb-info" class="bus-list"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const MTR_API_URL = "https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule";
+            const KMB_API_URL = "https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/";
+            const MTR_STATION = "藝典居";
+            const MTR_BUS_ROUTE = "K68";
+            const KMB_STOP_ID = "6A435795576D92E8";
+            const mtrContainer = document.getElementById("mtr-container");
+            const kmbContainer = document.getElementById("kmb-container");
+            
+            async function fetchKmbBusData() {
+                try {
+                    const response = await fetch(`${KMB_API_URL}${KMB_STOP_ID}`);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    const data = await response.json();
+                    console.log("KMB API Response:", data); // Debugging output
+                    updateKmbDisplay(data);
+                    kmbContainer.classList.remove("hidden"); // 顯示 KMB UI
+                } catch (error) {
+                    console.error("Error fetching KMB bus data:", error);
+                    kmbContainer.classList.add("hidden"); // 隱藏 KMB UI
+                }
+            }
+    
+            function updateKmbDisplay(data) {
+                const displayElement = document.getElementById("kmb-info");
+                displayElement.innerHTML = "";
+    
+                const buses = data?.data || [];
+                if (!buses.length) {
+                    displayElement.innerHTML = "<p>未有班次</p>";
+                    return;
+                }
+    
+                buses.forEach(bus => {
+                    const route = bus.route;
+                    const etaTime = bus.eta ? Math.ceil((new Date(bus.eta) - new Date()) / 60000) + " min" : "未有班次";
+                    const nextEtaTime = bus.next_eta ? Math.ceil((new Date(bus.next_eta) - new Date()) / 60000) + " min" : "未有班次";
+    
+                    const row = document.createElement("div");
+                    row.className = "bus-row";
+                    row.innerHTML = `
+                        <span class="station">朗庭園</span>
+                        <span class="bus-route">${route}</span>
+                        <span class="arrival-time">${etaTime.replace("未有班次 min", "未有班次")}</span>
+                        <span class="next-arrival-time">${nextEtaTime.replace("未有班次 min", "未有班次")}</span>
+                    `;
+                    displayElement.appendChild(row);
+                });
+            }
+    
+            fetchKmbBusData();
+            setInterval(fetchKmbBusData, 30000);
+        });
+    </script>
+</body>
+</html>
