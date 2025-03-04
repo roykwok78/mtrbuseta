@@ -2,11 +2,18 @@
 <html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, width=device-width">
     <title>港鐵巴士 & 九巴即時到站</title>
+    
+    <!-- PWA 設定，讓 iOS 加入主畫面後全螢幕顯示 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="巴士到站時間">
+    <link rel="apple-touch-icon" href="icon.png">
+    
     <style>
-        /* Apple 風格 UI 設計，支援手機適配，適配 iPhone SE */
-        body {
+        /* Apple 風格 UI 設計，適配 iPhone SE，左右固定不滑動 */
+        html, body {
             font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", sans-serif;
             background-color: #f5f5f7;
             text-align: center;
@@ -16,22 +23,24 @@
             flex-direction: column;
             align-items: center;
             height: 100vh;
-            overflow-y: auto; /* 允許滾動 */
+            overflow-x: hidden; /* 禁止左右滾動 */
+            width: 100vw; /* 確保適配 */
         }
 
         .container {
-            width: 100%;
-            max-width: 320px; /* iPhone SE 適配最大寬度 */
+            width: 100vw; /* 佔可視角度 90% 的寬度 */
+            max-width: 500px; /* 最大寬度限制，適配大螢幕 */
             padding: 10px;
+            box-sizing: border-box;
         }
 
         .bus-info-container {
-            width: 100%;
             background: white;
             padding: 15px;
             border-radius: 15px;
             box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
             margin-bottom: 15px;
+            overflow: hidden; /* 禁止垂直滾動，確保完整顯示 */
         }
 
         h2 {
@@ -42,8 +51,8 @@
         }
 
         .bus-list {
-            max-height: 300px;
-            overflow-y: auto;
+            max-height: none; /* 移除最大高度，確保完整顯示 */
+            overflow: hidden; /* 禁止滾動 */
             padding-right: 5px;
         }
 
