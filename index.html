@@ -4,43 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, width=device-width">
     <title>港鐵巴士 & 九巴即時到站</title>
-    
-    <!-- PWA 設定，讓 iOS 加入主畫面後全螢幕顯示 -->
+
+    <!-- PWA 設定 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="巴士到站時間">
     <link rel="apple-touch-icon" href="icon.png">
-    
+
     <style>
-        /* Apple 風格 UI 設計，適配 iPhone SE，左右固定不滑動 */
         html, body {
             font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", sans-serif;
             background-color: #f5f5f7;
-            text-align: center;
             margin: 0;
             padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+             flex-direction: column; 
+            /* align-items: center; */
+            /*justify-content: center;*/
             height: 100vh;
-            overflow-x: hidden; /* 禁止左右滾動 */
-            width: 100vw; /* 確保適配 */
+            overflow-x: hidden;
+            width: 100vw;
         }
 
         .container {
-            width: 100vw; /* 佔可視角度 90% 的寬度 */
-            max-width: 500px; /* 最大寬度限制，適配大螢幕 */
+            width: 92vw;
+            max-width: 500px;
             padding: 10px;
             box-sizing: border-box;
         }
 
+        h2{
+            padding-left: 15px;
+        }
+
         .bus-info-container {
-            background: white;
+            width: 100%;
             padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
             margin-bottom: 15px;
-            overflow: hidden; /* 禁止垂直滾動，確保完整顯示 */
+            overflow: hidden;
         }
 
         h2 {
@@ -51,9 +52,11 @@
         }
 
         .bus-list {
-            max-height: none; /* 移除最大高度，確保完整顯示 */
-            overflow: hidden; /* 禁止滾動 */
+            overflow: hidden;
             padding-right: 5px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0px 5px 20px rgba(0, 0, 0, 0.1);
         }
 
         .bus-row {
@@ -61,39 +64,32 @@
             justify-content: space-between;
             align-items: center;
             font-size: 14px;
-            padding: 10px;
-            background: rgba(242, 242, 247, 0.6);
-            border-radius: 10px;
-            margin-bottom: 8px;
-            box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .station {
-            flex: 1;
-            text-align: left;
-            font-weight: 500;
+            padding: 20px 20px;
+            border-bottom: 1px solid #f5f5f7;
         }
 
         .bus-route {
-            flex: 1;
-            text-align: center;
             font-weight: bold;
             color: #007aff;
+            font-size: 16px;
+        }
+
+        .arrival-times {
+            text-align: right;
         }
 
         .arrival-time {
-            flex: 1;
-            text-align: right;
             color: #34c759;
             font-weight: 600;
+            font-size: 16px;
+            margin-top: 5px;
         }
 
         .next-arrival-time {
-            flex: 1;
-            text-align: right;
-            color: #ff9500;
-            font-size: 10px; /* 字體比即將到達班次小 50% */
+            color: #666;
+            font-size: 12px;
             font-weight: 500;
+            margin-top: 3px;
         }
 
         .hidden {
@@ -104,12 +100,12 @@
 <body>
     <div class="container">
         <div id="mtr-container" class="bus-info-container hidden">
-            <h2>藝典居站</h2>
+            <h2 id="mtr-title"></h2>
             <div id="bus-info" class="bus-list"></div>
         </div>
 
         <div id="kmb-container" class="bus-info-container hidden">
-            <h2>朗庭園站</h2>
+            <h2 id="kmb-title"></h2>
             <div id="kmb-info" class="bus-list"></div>
         </div>
     </div>
@@ -117,55 +113,83 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const MTR_API_URL = "https://rt.data.gov.hk/v1/transport/mtr/bus/getSchedule";
-            const KMB_API_URL = "https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/";
             const MTR_STATION = "藝典居";
             const MTR_BUS_ROUTE = "K68";
+            const KMB_API_URL = "https://data.etabus.gov.hk/v1/transport/kmb/stop-eta/";
             const KMB_STOP_ID = "6A435795576D92E8";
-            const mtrContainer = document.getElementById("mtr-container");
-            const kmbContainer = document.getElementById("kmb-container");
+            const KMB_STATION = "朗庭園";
             
+            document.getElementById("mtr-title").innerText = `${MTR_STATION} - ${MTR_BUS_ROUTE} `;
+            document.getElementById("kmb-title").innerText = `${KMB_STATION} `;
+
+            async function fetchMtrBusData() {
+                try {
+                    const response = await fetch(MTR_API_URL, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ language: "zh", routeName: MTR_BUS_ROUTE })
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    const data = await response.json();
+                    updateBusDisplay(data, "bus-info", MTR_BUS_ROUTE);
+                    document.getElementById("mtr-title").classList.remove("hidden");
+                    document.getElementById("mtr-container").classList.remove("hidden");
+                } catch (error) {
+                    console.error("Error fetching MTR bus data:", error);
+                    document.getElementById("mtr-title").classList.add("hidden");
+                    document.getElementById("mtr-container").classList.add("hidden");   
+                }
+            }
+
             async function fetchKmbBusData() {
                 try {
                     const response = await fetch(`${KMB_API_URL}${KMB_STOP_ID}`);
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     const data = await response.json();
-                    console.log("KMB API Response:", data); // Debugging output
-                    updateKmbDisplay(data);
-                    kmbContainer.classList.remove("hidden"); // 顯示 KMB UI
+                    updateBusDisplay(data, "kmb-info");
+                    document.getElementById("kmb-container").classList.remove("hidden");
                 } catch (error) {
                     console.error("Error fetching KMB bus data:", error);
-                    kmbContainer.classList.add("hidden"); // 隱藏 KMB UI
+                    document.getElementById("kmb-container").classList.add("hidden");
                 }
             }
-    
-            function updateKmbDisplay(data) {
-                const displayElement = document.getElementById("kmb-info");
+
+            function updateBusDisplay(data, elementId, routeFilter) {
+                const displayElement = document.getElementById(elementId);
                 displayElement.innerHTML = "";
-    
+                
                 const buses = data?.data || [];
-                if (!buses.length) {
-                    displayElement.innerHTML = "<p>未有班次</p>";
-                    return;
-                }
-    
+                const groupedBuses = {};
+                
                 buses.forEach(bus => {
                     const route = bus.route;
-                    const etaTime = bus.eta ? Math.ceil((new Date(bus.eta) - new Date()) / 60000) + " min" : "未有班次";
-                    const nextEtaTime = bus.next_eta ? Math.ceil((new Date(bus.next_eta) - new Date()) / 60000) + " min" : "未有班次";
-    
+                    if (routeFilter && route !== routeFilter) return;
+                    if (!groupedBuses[route]) groupedBuses[route] = [];
+                    const eta = bus.eta ? Math.ceil((new Date(bus.eta) - new Date()) / 60000) : null;
+                    if (eta !== null && eta > 0) groupedBuses[route].push(eta);
+                });
+                
+                Object.keys(groupedBuses).forEach(route => {
+                    const times = groupedBuses[route].sort((a, b) => a - b);
+                    if (times.length === 0) return;
                     const row = document.createElement("div");
                     row.className = "bus-row";
                     row.innerHTML = `
-                        <span class="station">朗庭園</span>
-                        <span class="bus-route">${route}</span>
-                        <span class="arrival-time">${etaTime.replace("未有班次 min", "未有班次")}</span>
-                        <span class="next-arrival-time">${nextEtaTime.replace("未有班次 min", "未有班次")}</span>
+                        <div class="bus-route">${route}</div>
+                        <div class="arrival-times">
+                            <div class="arrival-time">即將到達：${times[0]} 分鐘</div>
+                            ${times.slice(1).map(t => `<div class="next-arrival-time">下一班次：${t} 分鐘</div>`).join('')}
+                        </div>
                     `;
                     displayElement.appendChild(row);
                 });
             }
-    
+
+            fetchMtrBusData();
             fetchKmbBusData();
+            setInterval(fetchMtrBusData, 30000);
             setInterval(fetchKmbBusData, 30000);
         });
     </script>
